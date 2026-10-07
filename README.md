@@ -69,3 +69,6 @@ npm run build
   `frontend/src/data/seed.ts`。
 - 状态流转只允许在 `local-service.ts` 里改，页面组件不做业务判断。
 - 想回到初始数据：清掉浏览器里 `airport-ground-handling:entries` 这一项，或调用 `resetModule(模块)`。
+- 货物装卸的「确认完成」是三步链路（状态流转 → 保障回写 → 特种车辆调度清单同步），
+  统一完成判定、并发去重、断点续跑与归属校验的实现见 `local-service.ts` 链路段落，
+  数据流与流程图见 `docs/cargo-chain.md`；详情页在 `/cargo/detail/:装卸编号`。

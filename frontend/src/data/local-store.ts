@@ -1,8 +1,10 @@
 import { SEED_ROWS } from './seed'
-import type { EntryRow } from './types'
+import type { CargoChainJournal, EntryRow } from './types'
 
 // 本地持久化：数据放在 localStorage 里，刷新、关掉再打开都还在。
 const STORAGE_KEY = 'airport-ground-handling:entries'
+// 货物装卸确认完成链路的台账：与业务数据分开存，互不污染。
+const JOURNAL_KEY = 'airport-ground-handling:cargo-chain-journal'
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
@@ -56,4 +58,34 @@ export function resetRows(key: string): EntryRow[] {
 
 export function storageKey(): string {
   return STORAGE_KEY
+}
+
+// ---- 链路台账读写：每个装卸编号一份，链路每跑完一步就落一次，失败后可从断点继续 ----
+
+function readJournals(): Record<string, CargoChainJournal> {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return {}
+  }
+  const raw = window.localStorage.getItem(JOURNAL_KEY)
+  if (!raw) {
+    return {}
+  }
+  try {
+    return JSON.parse(raw) as Record<string, CargoChainJournal>
+  } catch {
+    return {}
+  }
+}
+
+export function getCargoJournal(code: string): CargoChainJournal | null {
+  return readJournals()[code] ?? null
+}
+
+export function saveCargoJournal(journal: CargoChainJournal): void {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return
+  }
+  const all = readJournals()
+  all[journal.code] = journal
+  window.localStorage.setItem(JOURNAL_KEY, JSON.stringify(all))
 }

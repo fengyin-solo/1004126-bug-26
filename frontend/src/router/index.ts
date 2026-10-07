@@ -6,6 +6,7 @@ const Bridge = () => import('@/views/bridge/index.vue')
 const GroundPower = () => import('@/views/ground_power/index.vue')
 const Baggage = () => import('@/views/baggage/index.vue')
 const Cargo = () => import('@/views/cargo/index.vue')
+const CargoDetail = () => import('@/views/cargo/detail.vue')
 const Fueling = () => import('@/views/fueling/index.vue')
 const Catering = () => import('@/views/catering/index.vue')
 const CabinClean = () => import('@/views/cabin_clean/index.vue')
@@ -29,6 +30,7 @@ const router = createRouter({
     { path: '/ground_power', name: 'ground_power', component: GroundPower },
     { path: '/baggage', name: 'baggage', component: Baggage },
     { path: '/cargo', name: 'cargo', component: Cargo },
+    { path: '/cargo/detail/:code', name: 'cargo-detail', component: CargoDetail },
     { path: '/fueling', name: 'fueling', component: Fueling },
     { path: '/catering', name: 'catering', component: Catering },
     { path: '/cabin_clean', name: 'cabin_clean', component: CabinClean },

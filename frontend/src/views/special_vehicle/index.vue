@@ -63,8 +63,28 @@
       </tbody>
     </table>
 
+    <h3 class="section-title">特种车辆调度清单</h3>
+    <p class="judgment-note">调度清单由货物装卸确认完成链路回写真实结果，历史异常单保持原口径不改动。</p>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th v-for="column in dispatchColumns" :key="column">{{ column }}</th>
+          <th>当前状态</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="item in dispatchRows" :key="String(item.id)">
+          <td v-for="column in dispatchColumns" :key="column">{{ item[column] ?? '—' }}</td>
+          <td>{{ item.status }}</td>
+        </tr>
+        <tr v-if="!dispatchRows.length">
+          <td :colspan="dispatchColumns.length + 1" class="empty-state">暂无调度记录</td>
+        </tr>
+      </tbody>
+    </table>
+
     <footer class="page-foot">
-      <span>共 {{ total }} 条特种车辆记录</span>
+      <span>共 {{ total }} 条特种车辆记录 · {{ dispatchRows.length }} 张调度单</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
   </section>
@@ -76,6 +96,7 @@ import { computed, onMounted, ref } from 'vue'
 import {
   downloadEntries,
   listEntries,
+  listVehicleDispatch,
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
@@ -86,8 +107,10 @@ const columns = ["车辆编号", "车辆类型", "品牌型号", "载重吨位",
 const actions = ["调度出车", "安排维保", "停用车辆"]
 const statuses = ["待命", "出车中", "维保中", "已停用"]
 const stats = [{"label": "待命车辆", "value": 0}, {"label": "出车中车辆", "value": 0}, {"label": "维保中车辆", "value": 0}]
+const dispatchColumns = ["调度编号", "装卸编号", "关联航班", "车辆编号", "计划出车", "实际收车", "实际结果"]
 
 const rows = ref<EntryRow[]>([])
+const dispatchRows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
@@ -128,6 +151,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    dispatchRows.value = listVehicleDispatch()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '特种车辆列表读取失败'
   }
