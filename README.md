@@ -68,4 +68,6 @@ npm run build
 - 字段、状态、动作与流转目标集中在 `frontend/src/data/modules.ts`；示例数据在
   `frontend/src/data/seed.ts`。
 - 状态流转只允许在 `local-service.ts` 里改，页面组件不做业务判断。
+- 货物装卸的「确认完成」不走通用动作：统一完成判定、幂等确认、保障回写与断点续跑都在
+  `frontend/src/api/cargo-flow.ts`，三步链路的数据流与流程图见 `docs/cargo-flow.md`。
 - 想回到初始数据：清掉浏览器里 `airport-ground-handling:entries` 这一项，或调用 `resetModule(模块)`。

@@ -67,6 +67,28 @@
       <span>共 {{ total }} 条特种车辆记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
+
+    <section class="dispatch-panel">
+      <h3>特种车辆调度清单</h3>
+      <p class="page-desc">
+        与货物装卸同源的实时结果：完成判定与件数吨位以货物装卸记录为准，异常中断等历史状态按原口径展示。
+      </p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th v-for="column in dispatchColumns" :key="column">{{ column }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="entry in dispatch" :key="entry.id">
+            <td v-for="column in dispatchColumns" :key="column">{{ entry[column] }}</td>
+          </tr>
+          <tr v-if="!dispatch.length">
+            <td :colspan="dispatchColumns.length" class="empty-state">暂无货物装卸记录</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
   </section>
 </template>
 
@@ -79,6 +101,8 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { listCargoDispatch } from '@/api/cargo-flow'
+import type { CargoDispatchEntry } from '@/api/cargo-flow'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('special_vehicle')
@@ -91,6 +115,8 @@ const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
+const dispatchColumns = ["装卸编号", "关联航班", "货物品类", "件数吨位", "完成时间", "完成判定", "当前状态"] as const
+const dispatch = ref<CargoDispatchEntry[]>([])
 const filterFields = columns.slice(0, 3)
 const statusSummary = computed(() =>
   statuses.map((status: string) => ({
@@ -128,6 +154,8 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    // 调度清单同源派生：每次刷新都直接读货物装卸的真实结果
+    dispatch.value = listCargoDispatch()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '特种车辆列表读取失败'
   }

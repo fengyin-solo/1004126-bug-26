@@ -46,11 +46,13 @@
           <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
           <td>{{ row.status }}</td>
           <td class="row-actions">
+            <RouterLink class="link" :to="`/cargo/detail/${row.id}`">详情</RouterLink>
             <button
               v-for="action in actions"
               :key="action"
               class="link"
               type="button"
+              :disabled="pendingIds.has(Number(row.id))"
               @click="runAction(action, row)"
             >
               {{ action }}
@@ -79,6 +81,7 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { confirmCargoCompletion, resumePendingFlows } from '@/api/cargo-flow'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('cargo')
@@ -91,6 +94,8 @@ const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
+// 在途确认：同一装卸编号的并发提交只留一次
+const pendingIds = ref<Set<number>>(new Set())
 const filterFields = columns.slice(0, 3)
 const statusSummary = computed(() =>
   statuses.map((status: string) => ({
@@ -112,9 +117,27 @@ function openCreate() {
   errorMessage.value = '货物装卸登记入口尚未接入审批流'
 }
 
-function runAction(action: string, row: EntryRow) {
+async function runAction(action: string, row: EntryRow) {
   errorMessage.value = ''
-  const result = applyAction(meta.key, Number(row.id), action)
+  const id = Number(row.id)
+  if (action === '确认完成') {
+    // 确认完成走统一链路：统一完成判定 + 幂等 + 保障回写，不再走通用动作
+    if (pendingIds.value.has(id)) {
+      return
+    }
+    pendingIds.value.add(id)
+    try {
+      const result = await confirmCargoCompletion(id, { flight: String(row['关联航班'] ?? '') })
+      if (!result.ok) {
+        errorMessage.value = result.message
+      }
+    } finally {
+      pendingIds.value.delete(id)
+    }
+    reload()
+    return
+  }
+  const result = applyAction(meta.key, id, action)
   if (!result.ok) {
     errorMessage.value = result.message
     return
@@ -133,5 +156,10 @@ function reload() {
   }
 }
 
-onMounted(reload)
+onMounted(async () => {
+  reload()
+  // 失败从断点继续：进入列表时自动续跑上次没跑完的三步链路
+  await resumePendingFlows()
+  reload()
+})
 </script>
